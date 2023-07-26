@@ -5,7 +5,21 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class AppService {
-  getHello(): string {
-    return 'Hello mundo!';
+  constructor(
+    @InjectRepository(UserModel)
+    private user: Repository<UserModel>
+  ){}
+
+  public index() {
+    return this.user.find();
   }
+
+  findOne(id: number): Promise<UserModel | null> {
+    return this.user.findOneBy({ id });
+  }
+
+  async remove(id: number): Promise<void> {
+    await this.user.delete(id);
+  }
+
 }
