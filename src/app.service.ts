@@ -1,25 +1,64 @@
 import { Injectable } from '@nestjs/common';
-import { UserModel } from './models/User.entity';
-import { injectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+
+// This should be a real class/interface representing a user entity
+export type User = any;
 
 @Injectable()
-export class AppService {
+export class UsersService {
+  private readonly users = [
+    {
+      userId: 1,
+      username: 'vidal',
+      password: 'cumbre2023',
+    },
+    {
+      userId: 2,
+      username: 'vidal',
+      password: 'cumbre2023',
+    },
+  ];
+
+  async findOne(username: string): Promise<User | undefined> {
+    return this.users.find(user => user.username === username);
+  }
+}
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+
+@Injectable()
+export class AuthService {
+  constructor(private usersService: UsersService) {}
+
+  async signIn(username: string, pass: string): Promise<any> {
+    const user = await this.usersService.findOne(username);
+    if (user?.password !== pass) {
+      throw new UnauthorizedException();
+    }
+    const { password, ...result } = user;
+    // TODO: Generate a JWT and return it here
+    // instead of the user object
+    return result;
+  }
+}
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+import { JwtService } from '@nestjs/jwt';
+
+@Injectable()
+export class AuthService {
   constructor(
-    @InjectRepository(UserModel)
-    private user: Repository<UserModel>
-  ){}
+    private usersService: UsersService,
+    private jwtService: JwtService
+  ) {}
 
-  public index() {
-    return this.user.find();
+  async signIn(username, pass) {
+    const user = await this.usersService.findOne(username);
+    if (user?.password !== pass) {
+      throw new UnauthorizedException();
+    }
+    const payload = { sub: user.userId, username: user.username };
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+    };
   }
-
-  findOne(id: number): Promise<UserModel | null> {
-    return this.user.findOneBy({ id });
-  }
-
-  async remove(id: number): Promise<void> {
-    await this.user.delete(id);
-  }
-
 }
